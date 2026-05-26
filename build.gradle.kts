@@ -80,16 +80,6 @@ if (isCI) {
 
 version = "${version}-IDEA${buildVersion}"
 
-fun getRev(): String {
-    val os = ByteArrayOutputStream()
-    exec {
-        executable = "git"
-        args("rev-parse", "HEAD")
-        standardOutput = os
-    }
-    return os.toString().substring(0, 7)
-}
-
 task("downloadEmmyDebugger", type = Download::class) {
     src(arrayOf(
         "https://github.com/EmmyLua/EmmyLuaDebugger/releases/download/${emmyDebuggerVersion}/darwin-arm64.zip",
@@ -184,38 +174,13 @@ project(":") {
 
     intellijPlatform {
         version = version
+        buildSearchableOptions = false
         sandboxContainer.set(layout.buildDirectory.dir("${buildVersionData.ideaSDKShortVersion}/idea-sandbox"))
-    }
-
-    task("bunch") {
-        doLast {
-            val rev = getRev()
-            // reset
-            exec {
-                executable = "git"
-                args("reset", "HEAD", "--hard")
-            }
-            // clean untracked files
-            exec {
-                executable = "git"
-                args("clean", "-d", "-f")
-            }
-            // switch
-            exec {
-                executable = if (isWin) "bunch/bin/bunch.bat" else "bunch/bin/bunch"
-                args("switch", ".", buildVersionData.bunch)
-            }
-            // reset to HEAD
-            exec {
-                executable = "git"
-                args("reset", rev)
-            }
-        }
     }
 
     tasks {
         buildPlugin {
-            dependsOn("bunch", "installEmmyDebugger")
+            dependsOn("installEmmyDebugger")
             archiveBaseName.set(buildVersionData.archiveName)
             from(fileTree(resDir) { include("!!DONT_UNZIP_ME!!.txt") }) {
                 into("/${project.name}")
